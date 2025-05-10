@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" type="text/css" href="/static/chatbot/style.css">
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .chatbox {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            width: 350px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 1s ease-out;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chatbox h2 {
+            text-align: center;
+            color: #ffffff;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        #chatlog {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 10px;
+            padding-left: 10px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.2);
+        }
+
+        .user {
+            text-align: right;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            max-width: 80%;
+            margin-left: auto;
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .bot {
+            text-align: left;
+            background-color: #f1f1f1;
+            color: #333;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            max-width: 80%;
+            margin-right: auto;
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        #userInput {
+            width: 100%;
+            padding: 12px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            margin-top: 10px;
+            background-color: #fff;
+            color: #333;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #loading {
+            font-style: italic;
+            color: #888;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideInRight {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        /* Style for the voice input button */
+        #voiceInput {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #ff8c00;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        #voiceInput:hover {
+            background-color: #ff6f00;
+        }
+
+        /* Chatbox Scrollbar Styling */
+        #chatlog::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chatlog::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 10px;
+        }
+
+        #chatlog::-webkit-scrollbar-thumb:hover {
+            background-color: #555;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chatbox">
+        <h2>Chatbot</h2>
+        <div id="chatlog" class="chatlog"></div>
+        <input type="text" id="userInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter'){sendMessage();}">
+        
+        <!-- File input for voice messages -->
+        <input type="file" id="voiceFileInput" accept="audio/*" style="display: none;" onchange="handleVoiceUpload(event)">
+        <button id="voiceInput" onclick="document.getElementById('voiceFileInput').click();">Upload Voice Message</button>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const userInput = document.getElementById("userInput");
+            const chatlog = document.getElementById("chatlog");
+            const message = userInput.value;
+        
+            if (message.trim() === "") return;
+        
+            // Show user message
+            chatlog.innerHTML += "<div class='user'>You: " + message + "</div>";
+            chatlog.innerHTML += "<div class='bot' id='loading'>Bot is typing...</div>";
+        
+            // Send message to Django server
+            fetch("/get-response/?msg=" + encodeURIComponent(message))
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("loading").remove();
+                    chatlog.innerHTML += "<div class='bot'>Bot: " + data.response + "</div>";
+                    chatlog.scrollTop = chatlog.scrollHeight;
+                });
+        
+            userInput.value = "";
+        }
+
+        function handleVoiceUpload(event) {
+            const chatlog = document.getElementById("chatlog");
+            const file = event.target.files[0];
+
+            if (file) {
+                chatlog.innerHTML += "<div class='user'>You uploaded a voice message</div>";
+                chatlog.innerHTML += "<div class='bot'>Bot is processing your voice message...</div>";
+                chatlog.scrollTop = chatlog.scrollHeight;
+                setTimeout(function() {
+                    chatlog.innerHTML += "<div class='bot'>Bot: Here is the response to your voice message.</div>";
+                    chatlog.scrollTop = chatlog.scrollHeight;
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
